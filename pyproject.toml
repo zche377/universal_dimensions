@@ -1,0 +1,112 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "universal_dimensions"
+description = "Study on the universal dimensions of vision"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Zirui Chen", email = "zchen160@jhu.edu"}
+]
+keywords = [
+    "Bonner Lab",
+    "universal dimensions",
+    "visual representations",
+    "visual cortex",
+    "deep neural networks"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+    "Typing :: Typed",
+]
+urls = {repository = "https://github.com/BonnerLab/universal_dimensions"}
+dependencies = [
+    "loguru",
+    "more-itertools",
+    "tqdm",
+    "numpy",
+    "torch",
+    "torchvision",
+    "pandas",
+    "xarray",
+    "dask",
+    "scipy",
+    "umap-learn",
+    "Pillow",
+    "matplotlib",
+    "seaborn",
+    "bokeh",
+    "datashader",
+    "holoviews",
+    "svgutils",
+    "scikit-learn",
+    "nilearn",
+    "lmfit",
+    "notebook",
+    "ipywidgets",
+    "emcee",
+    "torchmetrics",
+    "statsmodels",
+    "python-dotenv",
+    "torchlens",\
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+dev = [
+    "pylint",
+    "black",
+    "mypy",
+    "types-requests",
+    "pytest",
+    "bandit",
+    "tox",
+    "sphinx",
+    "jupytext",
+    "line-profiler",
+    "memory-profiler",
+    "snakeviz",
+]
+
+[tool.black]
+preview = true
+
+[tool.mypy]
+namespace_packages = true
+ignore_missing_imports = true
+
+disallow_untyped_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+
+# disallow_any_unimported = true
+# disallow_any_expr = true
+# disallow_any_decorated = true
+# disallow_any_explicit = true
+# disallow_any_generics = true
+# disallow_subclassing_any = true
+
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+# warn_return_any = true
+warn_unreachable = true
+
+allow_redefinition = true
+
+[tool.jupytext.formats]
+"notebooks" = "ipynb"
+"scripts" = "py:percent"
+
+[tool.jupytext]
+notebook_metadata_filter = "-all"
+cell_metadata_filter = "-all"
