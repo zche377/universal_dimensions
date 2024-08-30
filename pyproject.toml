@@ -28,7 +28,7 @@ classifiers = [
     "Topic :: Scientific/Engineering",
     "Typing :: Typed",
 ]
-urls = {repository = "https://github.com/BonnerLab/universal_dimensions"}
+urls = {repository = "https://github.com/zche377/universal_dimensions"}
 dependencies = [
     "loguru",
     "more-itertools",
