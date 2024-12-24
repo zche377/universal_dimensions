@@ -43,7 +43,7 @@ The code has been tested on RHEL 9.3.
 The code has been tested on Python==3.10.14.
 
 ### Python dependencies
-The following is a list of python libraries to run all scripts, with more detail in ```pyproject.toml```:
+The following is a list of python libraries to run all scripts, with more detail in ```requirements.txt```:
 ```
 bonner-libraries==0.0.0
 huggingface-hub==0.23.4
@@ -129,12 +129,14 @@ Each model set has a corresponding ```yielder``` identifier:
  - ```classification_imagenet1k_varied_architectures```
  - ```resnet50_imagenet1k_varied_tasks```
  - ```untrained_resnet18_varied_seeds```
+ - ```varied_visual_diets```
 
 Each metric or analysis has a corresponding ```score``` identifier: 
-- ```universality_index```
-- ```brain_similarity```
-- ```rsa```
-- ```pc_umap```
+ - ```universality_index```
+ - ```universality_index --cb``` (between-subject reliability)
+ - ```brain_similarity```
+ - ```rsa```
+ - ```pc_umap```
 
 To cache the model feature maps and compute the results:
 ```
@@ -147,7 +149,7 @@ To compute the scores necessary for Figure 5 in the manuscript:
 python scripts/compute_score.py --yielder {yielder} --score rsa
 python scripts/compute_score.py --yielder {yielder} --score rsa --sortby within_basis_ui --ntop {ntop}
 ```
-for ```ntop``` in ```[1,2,3,4,10]```.
+for ```ntop``` in ```[1,5,10]```.
 
 To compute the scores necessary for Supplement Figure 3, use option ```--roi default_list```.
 

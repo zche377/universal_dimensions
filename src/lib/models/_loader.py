@@ -11,6 +11,7 @@ def load_default_nodes(architecture: str) -> list[str]:
                 + [f"layer{i}.{j}.relu" for i in range(1, 5) for j in range(2) ]
             )
         case "resnet50" | "resnext50_32x4d" | "wide_resnet50_2":
+            # return ["layer2.3.relu_2",]
             return (
                 ["relu"]
                 + [f"layer1.{i}.relu_2" for i in range(3)]
@@ -20,12 +21,15 @@ def load_default_nodes(architecture: str) -> list[str]:
             )
         case "alexnet":
             return [f"features.{i}" for i in [1, 4, 7, 9, 11]]
+        case "alexnetgn":
+            return [f"conv_block_{i}.2" for i in range(1, 6)]
         case "vgg16":
             return [
                 f"features.{i}" 
                 for i in [1, 3, 6, 8, 11, 13, 15, 18, 20, 22, 25, 27, 29]
             ]
         case "densenet121":
+            
             return ((
                 ["features.relu0"]
                 + [f"features.denseblock1.denselayer{i}.relu2" for i in range(1, 7)]
@@ -44,6 +48,8 @@ def load_default_nodes(architecture: str) -> list[str]:
                 ]
             )
         case "shufflenet_v2_x1_0":
+            # return ["conv5.2"]
+            
             return (
                 [f"conv{i}.2" for i in [1, 5]]
                 + [f"stage{i}.0.branch1.4" for i in range(2, 5)]
@@ -85,6 +91,14 @@ def load_default_nodes(architecture: str) -> list[str]:
             return (
                 [f"stem.act{i}" for i in range(1,4)]
                 + [f"stages.{i}.blocks.{j}.{k}.act" for i in range(3) for j in range(4) for k in ["attn.proj", "mlp"]]
+            )
+        case "convmixer_768_32":
+            # return ["blocks.5.0.fn.2"]
+        
+        
+            return (
+                ["stem.1"]
+                + [f"blocks.{i}.{j}" for i in range(1, 32, 2) for j in ["0.fn.2", "3"]]
             )
         case "mixer_b16_224":
             return (
@@ -176,6 +190,15 @@ def load_model(
             )
             if weights == "untrained":
                 identifier += f".seed={seed}"
+        case "ipcl":
+            model, preprocess = zoo.load_ipcl_model(
+                weights=weights,
+                architecture=architecture
+            )
+        case "vggplaces":
+            model, preprocess = zoo.load_vgg16_places(
+                weights=weights,
+            )
         case _:
             raise ValueError(f"Source {source} not supported.")
     nodes = nodes if nodes else load_default_nodes(architecture.lower())
@@ -201,7 +224,7 @@ def load_model_identifier(
         f".weights={weights.lower()}"
     )
     match source:
-        case "vissl":
+        case "vissl" | "ipcl" | "vggplaces":
             pass
         case "torchvision" | "timm":
             if weights == "untrained":

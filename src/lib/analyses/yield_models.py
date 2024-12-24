@@ -2,7 +2,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 import numpy as np
 
-from lib.models import Model, load_model, load_model_identifier, load_default_hooks, load_default_nodes
+from lib.models import PseudoModel, Model, load_model, load_model_identifier, load_default_hooks, load_default_nodes
 from bonner.models.hooks import Hook
 
 
@@ -39,6 +39,16 @@ TIMM_ARCHS = [
     "mixer_b16_224",
     "resmlp_12_224",
     "dla34",
+]
+VGGPLACES_WEIGHTS = [
+    "Places365",
+    "Hybrid1365",
+]
+IPCL_WEIGHTS = [
+    "ref06_diet_imagenet",
+    "ref07_diet_openimagesv6",
+    "ref08_diet_places2",
+    "ref09_diet_vggface2",
 ]
 
 
@@ -86,6 +96,13 @@ def _resnet50_imagenet1k_varied_tasks(
                 hooks=hooks,
                 hooks_kws=hooks_kws,
             )
+        # yield loader(
+        #     architecture="ResNet50",
+        #     source="barlowtwins",
+        #     weights="barlowtwins-ImageNet1K",
+        #     hooks=hooks,
+        #     hooks_kws=hooks_kws,
+        # )
     return resnet50_imagenet1k_varied_tasks
 
 
@@ -179,23 +196,60 @@ def _resnet18_classification_imagenet1k_varied_seeds(
             )
     return resnet18_classification_imagenet1k_varied_seeds
 
-
-def _demo_resnet18_varied_seeds(
+def _varied_visual_diets(
     loader: callable,
     hooks: (dict | str),
     hooks_kws: dict,
 ) -> callable:
-    def demo_resnet18_varied_seeds():
-        for seed in range(1, 15, 5):
+    def varied_visual_diets():
+        for weights in IPCL_WEIGHTS:
             yield loader(
-                architecture="ResNet18",
-                source="model_zoo",
-                weights="tiny_imagenet",
-                seed=seed,
+                architecture="alexnetgn",
+                source="ipcl",
+                weights=weights,
                 hooks=hooks,
                 hooks_kws=hooks_kws,
             )
-    return demo_resnet18_varied_seeds
+    return varied_visual_diets
+        
+
+def _pseudo_models_topleft_outlier(identifier_only) -> callable:
+    odd_ranks = [1, 0]
+    if identifier_only:
+        def pseudo_models_topleft_outlier():
+            for odd_rank in odd_ranks:
+                yield PseudoModel(
+                    outlier_type="topleft",
+                    odd_rank=odd_rank,
+                ).identifier
+    else:
+        def pseudo_models_topleft_outlier():
+            for odd_rank in odd_ranks:
+                yield PseudoModel(
+                    outlier_type="topleft",
+                    odd_rank=odd_rank,
+                )
+    return pseudo_models_topleft_outlier
+
+
+def _pseudo_models_bottomright_outlier(identifier_only) -> callable:
+    noise_indices = np.arange(10)
+    if identifier_only:
+        def pseudo_models_bottomright_outlier():
+            for noise_index in noise_indices:
+                yield PseudoModel(
+                    outlier_type="bottomright",
+                    noise_index=noise_index,
+                ).identifier
+    else:
+        def pseudo_models_bottomright_outlier():
+            for noise_index in noise_indices:
+                yield PseudoModel(
+                    outlier_type="bottomright",
+                    noise_index=noise_index,
+                )
+    return pseudo_models_bottomright_outlier
+       
 
 def load_yielder(
     yielder_name: str, 
@@ -215,8 +269,12 @@ def load_yielder(
             return _untrained_resnet18_varied_seeds(loader, hooks, hooks_kws)
         case "resnet18_classification_imagenet1k_varied_seeds":
             return _resnet18_classification_imagenet1k_varied_seeds(loader, hooks, hooks_kws)
-        case "demo_resnet18_varied_seeds":
-            return _demo_resnet18_varied_seeds(loader, hooks, hooks_kws)
+        case "varied_visual_diets":
+            return _varied_visual_diets(loader, hooks, hooks_kws)
+        case "pseudo_models_topleft_outlier":
+            return _pseudo_models_topleft_outlier(identifier_only)
+        case "pseudo_models_bottomright_outlier":
+            return _pseudo_models_bottomright_outlier(identifier_only)
         case _:
             raise ValueError(f"Unknown yielder: {yielder_name}")
         

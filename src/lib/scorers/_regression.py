@@ -49,15 +49,8 @@ def _compute_metric(
         case _:
             raise ValueError("metric must be 'correlation' or 'covariance'")
 
-    scores = []
-    n_folds = len(y_true)
-    for _ in range(n_folds):
-        y_true_, y_predicted_ = y_true.pop(), y_predicted.pop()
-        
-        scores.append(metric(y_true_, y_predicted_).cpu())
-
-    # output scores-per-fold
-    scores = torch.stack(scores)
+    scores = [metric(y_true_, y_predicted_) for y_true_, y_predicted_ in zip(y_true, y_predicted)]
+    scores = torch.stack(scores).cpu()
     return scores
 
 def _best_alpha_per_column(
@@ -105,8 +98,8 @@ class RegressionScorer(Scorer):
         predictor: xr.DataArray,
         target: xr.DataArray,
     ) -> tuple[list[torch.Tensor], list[torch.Tensor]]:
-        x = torch.tensor(predictor.values).to(self.device)
-        y = torch.tensor(target.values).to(self.device)
+        x = torch.tensor(predictor.values, device=self.device)
+        y = torch.tensor(target.values, device=self.device)
         splits = create_splits(n=y.shape[-2], n_folds=self.n_folds, shuffle=self.shuffle, seed=self.seed)
         
         y_true, y_predicted = [], []
@@ -117,11 +110,12 @@ class RegressionScorer(Scorer):
             y_train, y_test = y[..., indices_train, :], y[..., indices_test, :]
             
             if self.regression == "ridgecv":
-                model = RidgeGCVRegression(alphas=self.alphas, device=self.device)
-                model.fit(x_train, y_train)
+                model = RidgeGCVRegression(alphas=self.alphas, device=self.device, **self.regression_kwargs)
+            elif self.regression == "one2one":
+                model = One2OneMatching()
             else:
                 model = _load_regression(self.regression)(**self.regression_kwargs)
-                model.fit(x=x_train, y=y_train)
+            model.fit(x=x_train, y=y_train)
             
             y_true.append(y_test)
             y_predicted.append(model.predict(x_test))
@@ -576,7 +570,7 @@ class RidgeGCVRegression(Regression):
                         score,
                         y_pred,
                     )
-
+        
         self.alpha_ = best_alpha
         self.score_ = best_score
         self.dual_coef_ = best_coef
@@ -603,3 +597,24 @@ class RidgeGCVRegression(Regression):
         y = self.parse_input_data(y)
         return pearson_corrcoef(y, self.predict(x))
 
+
+class One2OneMatching(Regression):
+    def __init__(
+        self,
+        device: str = "cuda" if torch.cuda.is_available() else "cpu",
+    ):
+        super().__init__()
+        self.device = device
+        self.indices = None
+        
+    def fit(self, x, y):
+        x.to(self.device)
+        y.to(self.device)
+        r = pearson_r(x, y, return_diagonal=False)
+        r = torch.nan_to_num(r, nan=float('-inf'))
+        self.indices = torch.argmax(r, dim=0)
+    
+    def predict(self, x):
+        x.to(self.indices.device)
+        batch_indices = torch.arange(x.size(0)).unsqueeze(1)
+        return x[batch_indices, self.indices]
