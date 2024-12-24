@@ -44,6 +44,8 @@ if __name__ == "__main__":
     parser.set_defaults(cross_basis=False)
     parser.add_argument("--pca", dest="pca", action="store_true")
     parser.set_defaults(pca=False)
+    parser.add_argument("--noplot", dest="plot", action="store_false")
+    parser.set_defaults(plot=True)
 
     parser.add_argument("--reg", type=str, default="ridgecv")
     parser.add_argument("--sortby", type=str, default=None)
@@ -86,12 +88,13 @@ if __name__ == "__main__":
                 args.reg,
                 args.sortby,
                 n_top=ntop,
-                stim=int(args.stim) if args.stim.isdigit() else args.stim,
+                stim=args.stim,
                 threshold_col=args.threshcol,
                 threshold=args.thresh,
                 node_str=args.node,
                 model_str=args.model,
                 pca=args.pca,
+                plot=args.plot,
             )
         case "universality_index":
             if args.basis == "voxel":

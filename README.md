@@ -170,11 +170,14 @@ python scripts/summarize_results.py --yielder {yielder} --score rsa --sortby wit
 
 See ```notebooks/figures.ipynb``` for generating all plots relevant to these scores in the manuscript.
 
-To generate all UMAP plots in the manuscript:
+To generate all UMAP plots and stats in the manuscript:
 ```
 python scripts/compute_score.py --score pc_umap --yielder resnet50_imagenet1k_varied_tasks --node layer4.1.relu_2 --sortby within_basis_ui --ntop 100
 python scripts/compute_score.py --score pc_umap --yielder resnet50_imagenet1k_varied_tasks --node layer4.1.relu_2 -ntop -100 --sortby within_basis_ui --ntop 100
 python scripts/compute_score.py --score pc_umap --yielder untrained_resnet18_varied_seeds --node layer4.0.relu --sortby within_basis_ui --ntop 100
+python scripts/compute_score.py --score pc_umap --yielder resnet50_imagenet1k_varied_tasks --node layer4.1.relu_2 --sortby within_basis_ui --ntop 100 --stim all --noplot
+python scripts/compute_score.py --score pc_umap --yielder resnet50_imagenet1k_varied_tasks --node layer4.1.relu_2 -ntop -100 --sortby within_basis_ui --ntop 100 --stim all --noplot
+python scripts/compute_score.py --score pc_umap --yielder untrained_resnet18_varied_seeds --node layer4.0.relu --sortby within_basis_ui --ntop 100 --stim all --noplot
 ```
 
 # Information about the datasets

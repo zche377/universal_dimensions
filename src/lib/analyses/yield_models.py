@@ -2,7 +2,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 import numpy as np
 
-from lib.models import PseudoModel, Model, load_model, load_model_identifier, load_default_hooks, load_default_nodes
+from lib.models import Model, load_model, load_model_identifier, load_default_hooks, load_default_nodes
 from bonner.models.hooks import Hook
 
 

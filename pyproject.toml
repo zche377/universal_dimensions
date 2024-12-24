@@ -57,7 +57,7 @@ dependencies = [
     "torchmetrics",
     "statsmodels",
     "python-dotenv",
-    "torchlens",\
+    "torchlens",
 ]
 dynamic = ["version"]
 

@@ -131,9 +131,6 @@ def val_quantile_bin(
         ]
     return bins, labels
 
-def _test():
-    print("xxx")
-
 def df_quantile_bin(
     df: pd.DataFrame,
     col: str,
@@ -151,17 +148,13 @@ def df_quantile_bin(
         bins, labels = val_quantile_bin(val, n_bin=temp_n_bin, x_arithmetic_mean=x_arithmetic_mean,)
         df[label_col] = [labels[i] for i in np.digitize(val, bins, right=True) - 1]
         return df
-        # val = df[col].to_numpy()
-        # bins, labels = val_quantile_bin(val, n_bin=n_bin, x_arithmetic_mean=x_arithmetic_mean,)
-        # df[label_col] = [labels[i] for i in np.digitize(val, bins, right=True) - 1]
-        # return df
     else:
         dfs = []
         for _, x in list(df.groupby(level)):
             if isinstance(n_bin, int):
                 temp_n_bin = n_bin
             else:
-                temp_n_bin = np.max((2, round(len(x) * n_bin)))
+                temp_n_bin = int(np.max((2, round(len(x) * n_bin))))
             dfs.append(
                 df_quantile_bin(
                     x.dropna(),

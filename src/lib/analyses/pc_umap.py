@@ -213,13 +213,52 @@ def pc_umap(
     node_str: str = None,
     model_str: str = None,
     pca: bool = False,
+    plot: bool = True,
 ) -> None:
-    dir_path = f"pc_umap/basis={basis}/regression={regression_type}/roi={roi}/mode={mode}/stim={stim}/yielder={yielder_name}/model={model_str}/node={node_str}/sort_by={sort_by}.threshold={threshold_col}={threshold}"
-   
-    if pca:
-        dir_path += f".pca={pca}"
-    cacher = cache(f"{dir_path}/ntop={n_top}.nc")
-    X_umap = cacher(_X_umap)(yielder, yielder_name, basis, mode, roi, regression_type, node_str, model_str, sort_by, threshold_col, threshold, n_top, stim, pca)
-    _plot_X_umap(X_umap, n_top, dir_path,)
     
+    try:
+        stim = int(stim)
+    except:
+        pass
+    
+    if n_top is None:
+        n_top = 100
+    else:
+        try:
+            n_top = int(n_top)
+        except:
+            pass
+        
+    if node_str is None or node_str != "node_loop":
+        node_str = [node_str]
+    else:
+        match yielder_name:
+            case "resnet50_imagenet1k_varied_tasks":
+                node_str = (
+                    ["relu"]
+                    + [f"layer1.{i}.relu_2" for i in range(3)]
+                    + [f"layer2.{i}.relu_2" for i in range(4)]
+                    + [f"layer3.{i}.relu_2" for i in range(6)]
+                    + [f"layer4.{i}.relu_2" for i in range(3)]
+                )
+            case  "untrained_resnet18_varied_seeds" | "resnet18_classification_imagenet1k_varied_seeds":
+                node_str = (
+                    ["relu"]
+                    + [f"layer{i}.{j}.relu" for i in range(1, 5) for j in range(2) ]
+                )
+            case _:
+                raise ValueError(
+                    "not implemented"
+                )
+    
+    for ns in node_str:
+        logging.info(ns)
+        dir_path = f"pc_umap/basis={basis}/regression={regression_type}/roi={roi}/mode={mode}/stim={stim}/yielder={yielder_name}/model={model_str}/node={ns}/sort_by={sort_by}.threshold={threshold_col}={threshold}"
+    
+        if pca:
+            dir_path += f".pca={pca}"
+        cacher = cache(f"{dir_path}/ntop={n_top}.nc")
+        X_umap = cacher(_X_umap)(yielder, yielder_name, basis, mode, roi, regression_type, ns, model_str, sort_by, threshold_col, threshold, n_top, stim, pca)
+        if plot:
+            _plot_X_umap(X_umap, n_top, dir_path,)
     
