@@ -8,6 +8,7 @@ logger.add(sys.stderr, level="INFO")
 
 logging.basicConfig(level=logging.INFO)
 
+from tqdm.auto import tqdm
 import os
 import io
 from pathlib import Path
@@ -18,7 +19,9 @@ import xarray as xr
 import umap
 from nilearn import plotting, datasets, surface
 from copy import deepcopy
-from PIL import Image
+from PIL import Image, ImageFilter
+from torchvision.models.detection import fasterrcnn_resnet50_fpn
+from torchvision.transforms import functional as F
 
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -45,9 +48,6 @@ NSD_STIMULI_PATH = (
     Path(os.getenv("BONNER_DATASETS_HOME"))
     / "allen2021.natural_scenes"
     / "images"
-)
-IMAGENET_TRAIN_PATH = Path(
-    "/home/zchen160/scratch4-mbonner5/shared/brainscore/brainio/image_russakovsky2014_ilsvrc2012/train/"
 )
 
 
@@ -171,30 +171,77 @@ def _X_umap(yielder, yielder_name, basis, mode, roi, regression_type, node_str, 
       
     return X_umap
 
-def _plot_X_umap(X_umap, n_top, dir_path,):
+def _plot_X_umap(X_umap, n_top, dir_path, batch_size=32):
     x, y = X_umap[:, 0], X_umap[:, 1]
     stimuli = load_stimuli()
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model = fasterrcnn_resnet50_fpn(pretrained=True).to(device)
+    model.eval()
+    
     plt.close()
     fig, ax = plt.subplots(figsize=(10, 10))
-    for i, stim_id in enumerate(X_umap.stimulus_id.values):
-        stim_val = stimuli.sel(stimulus_id=stim_id).values
-        image_box = OffsetImage(stim_val, zoom=0.05)
-        image_box.image.axes = ax
-        ab = AnnotationBbox(
-            image_box,
-            xy=(x[i], y[i]),
-            xycoords="data",
-            frameon=False,
-            pad=0,
-        )
-        ax.add_artist(ab)
+    
+    # Process stimuli in batches
+    for batch_start in tqdm(range(0, len(X_umap.stimulus_id), batch_size), desc="Batch processing"):
+        batch_end = min(batch_start + batch_size, len(X_umap.stimulus_id))
+        batch_ids = X_umap.stimulus_id.values[batch_start:batch_end]
+        
+        # Load batch of stimuli
+        batch_images = []
+        batch_positions = []
+        original_images = []
+        
+        for i, stim_id in enumerate(batch_ids):
+            stim_val = stimuli.sel(stimulus_id=stim_id).values
+            img = Image.fromarray(stim_val)
+            batch_images.append(F.to_tensor(stim_val))
+            batch_positions.append((x[batch_start + i], y[batch_start + i]))
+            original_images.append(img)
+        
+        # Stack and move to device
+        img_tensors = torch.stack(batch_images).to(device)
+        
+        # Perform inference
+        with torch.no_grad():
+            batch_outputs = model(img_tensors)
+        
+        # Process each image in the batch
+        for i, (img, output) in enumerate(zip(original_images, batch_outputs)):
+            for box, label, score in zip(output["boxes"], output["labels"], output["scores"]):
+                if label == 1 and score > 0.8:  # "person" category and confidence > 0.8
+                    x1, y1, x2, y2 = map(int, box.tolist())
+                    
+                    # Crop and blur the face
+                    face_region = img.crop((x1, y1, x2, y2))
+                    blurred_face = face_region.filter(ImageFilter.GaussianBlur(10))
+                    
+                    # Paste the blurred face back into the image
+                    img.paste(blurred_face, (x1, y1))
+            
+            # Convert the image back to a numpy array
+            stim_val = np.array(img)
+            
+            # Add the image to the plot
+            image_box = OffsetImage(stim_val, zoom=0.05)
+            image_box.image.axes = ax
+            ab = AnnotationBbox(
+                image_box,
+                xy=batch_positions[i],
+                xycoords="data",
+                frameon=False,
+                pad=0,
+            )
+            ax.add_artist(ab)
+    
+    # Finalize the plot
     ax.set_xlim([x.min(), x.max()])
     ax.set_ylim([y.min(), y.max()])
     ax.axis("off")
     
+    # Save the figure
     fig_path = BONNER_CACHING_HOME / dir_path / f"ntop={n_top}.png"
     fig_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(fig_path) 
+    fig.savefig(fig_path)
     
     return None
 
@@ -215,7 +262,6 @@ def pc_umap(
     pca: bool = False,
     plot: bool = True,
 ) -> None:
-    
     try:
         stim = int(stim)
     except:
